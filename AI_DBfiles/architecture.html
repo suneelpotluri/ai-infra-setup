@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Infrastructure System — Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2332;
+    --border: #1e3a5f;
+    --accent: #00d4ff;
+    --accent2: #7c3aed;
+    --accent3: #10b981;
+    --accent4: #f59e0b;
+    --accent5: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --done: #10b981;
+    --next: #f59e0b;
+    --pending: #475569;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    padding: 40px 20px;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(0,212,255,0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(124,58,237,0.04) 0%, transparent 50%);
+  }
+
+  .page-title {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .page-title h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+
+  .page-title p {
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .arch-container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* ── Laptop Box ─────────────────────────────────────── */
+  .laptop-box {
+    border: 1px solid var(--accent);
+    border-radius: 16px;
+    padding: 24px;
+    position: relative;
+    background: linear-gradient(135deg, rgba(0,212,255,0.03), transparent);
+    box-shadow: 0 0 40px rgba(0,212,255,0.08), inset 0 1px 0 rgba(0,212,255,0.1);
+    margin-bottom: 32px;
+  }
+
+  .laptop-box::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: 30px; right: 30px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+
+  .box-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    position: absolute;
+    top: -10px;
+    left: 24px;
+    background: var(--bg);
+    padding: 0 8px;
+  }
+
+  .hardware-info {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .hw-badge {
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid;
+    letter-spacing: 1px;
+  }
+
+  .hw-badge.os    { border-color: #3b82f6; color: #3b82f6; background: rgba(59,130,246,0.08); }
+  .hw-badge.ram   { border-color: var(--accent3); color: var(--accent3); background: rgba(16,185,129,0.08); }
+  .hw-badge.gpu   { border-color: var(--accent4); color: var(--accent4); background: rgba(245,158,11,0.08); }
+  .hw-badge.disk  { border-color: var(--accent2); color: var(--accent2); background: rgba(124,58,237,0.08); }
+
+  /* ── WSL2 Box ───────────────────────────────────────── */
+  .wsl-box {
+    border: 1px dashed #1e3a5f;
+    border-radius: 12px;
+    padding: 20px;
+    background: rgba(17,24,39,0.8);
+    position: relative;
+  }
+
+  .wsl-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .wsl-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+  }
+
+  .service-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    background: var(--surface2);
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .service-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .service-card.done::before  { background: var(--done); }
+  .service-card.next::before  { background: var(--next); }
+  .service-card.pending::before { background: var(--pending); }
+
+  .service-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .service-port {
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .service-desc {
+    font-size: 9px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .status-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+
+  .status-dot.done    { background: var(--done); box-shadow: 0 0 6px var(--done); animation: pulse 2s infinite; }
+  .status-dot.next    { background: var(--next); }
+  .status-dot.pending { background: var(--pending); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* ── Connector ──────────────────────────────────────── */
+  .connector {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin: 20px 0;
+    position: relative;
+  }
+
+  .connector-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    max-width: 200px;
+  }
+
+  .connector-label {
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+  }
+
+  .arrows {
+    display: flex;
+    justify-content: space-around;
+    padding: 0 40px;
+    margin-bottom: 8px;
+    color: var(--muted);
+    font-size: 18px;
+  }
+
+  /* ── VM Grid ────────────────────────────────────────── */
+  .vm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  .vm-box {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    background: var(--surface);
+    position: relative;
+  }
+
+  .vm-box.pg    { border-color: rgba(59,130,246,0.4); }
+  .vm-box.k8s   { border-color: rgba(124,58,237,0.4); }
+  .vm-box.mongo { border-color: rgba(16,185,129,0.4); }
+
+  .vm-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .vm-title .icon { font-size: 16px; }
+
+  .vm-os-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.05);
+    color: var(--muted);
+    margin-left: auto;
+    letter-spacing: 1px;
+  }
+
+  .vm-details {
+    font-size: 10px;
+    color: var(--muted);
+    margin: 8px 0;
+    line-height: 1.8;
+  }
+
+  .vm-agent {
+    font-size: 10px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .vm-agent.done    { background: rgba(16,185,129,0.1); color: var(--done); border: 1px solid rgba(16,185,129,0.2); }
+  .vm-agent.pending { background: rgba(71,85,105,0.1); color: var(--muted); border: 1px solid var(--border); }
+
+  /* ── Phase Timeline ─────────────────────────────────── */
+  .phase-timeline {
+    margin-top: 40px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    background: var(--surface);
+  }
+
+  .timeline-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+
+  .phases {
+    display: flex;
+    gap: 0;
+    position: relative;
+  }
+
+  .phases::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    height: 2px;
+    background: var(--border);
+    z-index: 0;
+  }
+
+  .phase-item {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .phase-dot {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    border: 2px solid;
+  }
+
+  .phase-dot.done    { background: var(--done); border-color: var(--done); color: #000; box-shadow: 0 0 15px rgba(16,185,129,0.4); }
+  .phase-dot.active  { background: var(--next); border-color: var(--next); color: #000; box-shadow: 0 0 15px rgba(245,158,11,0.4); }
+  .phase-dot.pending { background: var(--surface2); border-color: var(--border); color: var(--muted); }
+
+  .phase-name {
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .phase-name.done  { color: var(--done); }
+  .phase-name.active { color: var(--next); }
+
+  /* ── Model Info ─────────────────────────────────────── */
+  .model-info {
+    margin-top: 16px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .model-badge {
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(0,212,255,0.05);
+    border: 1px solid rgba(0,212,255,0.2);
+    color: var(--accent);
+  }
+
+  .footer {
+    text-align: center;
+    margin-top: 40px;
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-title">
+  <h1>AI Infrastructure Query System</h1>
+  <p>Architecture Overview — Sunil's Private Lab</p>
+</div>
+
+<div class="arch-container">
+
+  <!-- ── Laptop Box ── -->
+  <div class="laptop-box">
+    <span class="box-label">Central AI Server — Windows Laptop</span>
+
+    <div class="hardware-info">
+      <span class="hw-badge os">Windows 11</span>
+      <span class="hw-badge ram">64GB RAM</span>
+      <span class="hw-badge gpu">RTX 3060 6GB VRAM</span>
+      <span class="hw-badge disk">F: SanDisk SSD 1.8TB</span>
+    </div>
+
+    <div class="wsl-box">
+      <div class="wsl-label">WSL2 — Ubuntu 22.04 LTS (F:\WSL\Ubuntu2204\ext4.vhdx)</div>
+
+      <div class="services-grid">
+
+        <div class="service-card done">
+          <div class="service-name">
+            <span class="status-dot done"></span>Ollama
+          </div>
+          <div class="service-port">:11434 — 0.0.0.0</div>
+          <div class="service-desc">Local LLM engine<br>GPU accelerated via CUDA 12.7</div>
+        </div>
+
+        <div class="service-card done">
+          <div class="service-name">
+            <span class="status-dot done"></span>Mistral 7B Q4
+          </div>
+          <div class="service-port">4.4GB — In VRAM</div>
+          <div class="service-desc">Main reasoning model<br>mistral:7b-instruct-q4_K_M</div>
+        </div>
+
+        <div class="service-card done">
+          <div class="service-name">
+            <span class="status-dot done"></span>nomic-embed
+          </div>
+          <div class="service-port">274MB — Embedding</div>
+          <div class="service-desc">RAG embedding model<br>nomic-embed-text</div>
+        </div>
+
+        <div class="service-card done">
+          <div class="service-name">
+            <span class="status-dot done"></span>Open WebUI
+          </div>
+          <div class="service-port">:3000 — Docker</div>
+          <div class="service-desc">Chat interface<br>v0.8.5</div>
+        </div>
+
+        <div class="service-card done">
+          <div class="service-name">
+            <span class="status-dot done"></span>Docker CE
+          </div>
+          <div class="service-port">WSL2 Native</div>
+          <div class="service-desc">Container runtime<br>for all services</div>
+        </div>
+
+        <div class="service-card next">
+          <div class="service-name">
+            <span class="status-dot next"></span>ChromaDB
+          </div>
+          <div class="service-port">:8000 — Docker</div>
+          <div class="service-desc">Vector store<br>for log embeddings</div>
+        </div>
+
+        <div class="service-card next">
+          <div class="service-name">
+            <span class="status-dot next"></span>Loki
+          </div>
+          <div class="service-port">:3100 — Docker</div>
+          <div class="service-desc">Central log<br>aggregation</div>
+        </div>
+
+        <div class="service-card next">
+          <div class="service-name">
+            <span class="status-dot next"></span>Grafana
+          </div>
+          <div class="service-port">:3001 — Docker</div>
+          <div class="service-desc">Log visualization<br>& dashboards</div>
+        </div>
+
+        <div class="service-card pending">
+          <div class="service-name">
+            <span class="status-dot pending"></span>FastAPI
+          </div>
+          <div class="service-port">:8080 — Python</div>
+          <div class="service-desc">AI REST API<br>for agent queries</div>
+        </div>
+
+        <div class="service-card pending">
+          <div class="service-name">
+            <span class="status-dot pending"></span>LangGraph
+          </div>
+          <div class="service-port">Python Agent</div>
+          <div class="service-desc">Multi-tool agent<br>orchestration</div>
+        </div>
+
+      </div>
+
+      <div class="model-info">
+        <span class="model-badge">🟢 Ollama Running</span>
+        <span class="model-badge">🟢 Open WebUI Connected</span>
+        <span class="model-badge">🟢 GPU: CUDA 12.7</span>
+        <span class="model-badge">🟡 WSL2 IP: 172.21.47.67</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Arrows ── -->
+  <div class="connector">
+    <div class="connector-line"></div>
+    <div class="connector-label">Promtail → Loki log shipping (Phase 2)</div>
+    <div class="connector-line"></div>
+  </div>
+  <div class="arrows">
+    <span>↑</span>
+    <span>↑</span>
+    <span>↑</span>
+  </div>
+
+  <!-- ── VM Grid ── -->
+  <div class="vm-grid">
+
+    <div class="vm-box pg">
+      <div class="vm-title">
+        <span class="icon">🐘</span>
+        PostgreSQL Cluster
+        <span class="vm-os-badge">Ubuntu</span>
+      </div>
+      <div class="vm-details">
+        • 3-node cluster<br>
+        • Primary + 2 Replicas<br>
+        • pg_stat_statements<br>
+        • Replication monitoring
+      </div>
+      <div class="vm-agent pending">
+        <span>⏳</span> Promtail — Phase 2
+      </div>
+    </div>
+
+    <div class="vm-box k8s">
+      <div class="vm-title">
+        <span class="icon">☸️</span>
+        Kubernetes
+        <span class="vm-os-badge">kubeadm</span>
+      </div>
+      <div class="vm-details">
+        • kubeadm cluster<br>
+        • Ubuntu/RHEL nodes<br>
+        • Pod log collection<br>
+        • DaemonSet deploy
+      </div>
+      <div class="vm-agent pending">
+        <span>⏳</span> Promtail DaemonSet — Phase 2
+      </div>
+    </div>
+
+    <div class="vm-box mongo">
+      <div class="vm-title">
+        <span class="icon">🍃</span>
+        MongoDB
+        <span class="vm-os-badge">Ubuntu</span>
+      </div>
+      <div class="vm-details">
+        • Standalone node<br>
+        • Slow query profiling<br>
+        • mongod.log shipping<br>
+        • serverStatus metrics
+      </div>
+      <div class="vm-agent pending">
+        <span>⏳</span> Promtail — Phase 2
+      </div>
+    </div>
+
+    <div class="vm-box" style="border-color:rgba(245,158,11,0.4)">
+      <div class="vm-title">
+        <span class="icon">⚙️</span>
+        Ansible
+        <span class="vm-os-badge">RHEL</span>
+      </div>
+      <div class="vm-details">
+        • RHEL/Rocky control node<br>
+        • Playbook log shipping<br>
+        • /var/log/messages<br>
+        • /var/log/ansible.log
+      </div>
+      <div class="vm-agent pending">
+        <span>⏳</span> Promtail — Phase 2
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Phase Timeline ── -->
+  <div class="phase-timeline">
+    <div class="timeline-title">Project Phases</div>
+    <div class="phases">
+
+      <div class="phase-item">
+        <div class="phase-dot done">1</div>
+        <div class="phase-name done">Central AI<br>Server<br>✅ Done</div>
+      </div>
+
+      <div class="phase-item">
+        <div class="phase-dot active">2</div>
+        <div class="phase-name active">Log<br>Collection<br>🔜 Next</div>
+      </div>
+
+      <div class="phase-item">
+        <div class="phase-dot pending">3</div>
+        <div class="phase-name">RAG<br>Pipeline<br>Upcoming</div>
+      </div>
+
+      <div class="phase-item">
+        <div class="phase-dot pending">4</div>
+        <div class="phase-name">Agentic<br>System<br>Upcoming</div>
+      </div>
+
+      <div class="phase-item">
+        <div class="phase-dot pending">5</div>
+        <div class="phase-name">Automation<br>& Polish<br>Upcoming</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  AI INFRASTRUCTURE SYSTEM — SUNIL'S PRIVATE LAB — 2026
+</div>
+
+</body>
+</html>

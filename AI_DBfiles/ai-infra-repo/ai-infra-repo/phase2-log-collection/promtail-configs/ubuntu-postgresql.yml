@@ -1,0 +1,42 @@
+# Promtail config for Ubuntu/Debian PostgreSQL nodes
+# Replace LOKI_IP with your WSL2 laptop IP (e.g. 172.21.47.67)
+# File location on VM: /etc/promtail/config.yml
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://LOKI_IP:3100/loki/api/v1/push
+
+scrape_configs:
+  # System logs
+  - job_name: system
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: system
+          host: __HOSTNAME__
+          env: lab
+          __path__: /var/log/syslog
+
+  # PostgreSQL logs
+  - job_name: postgresql
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: postgresql
+          host: __HOSTNAME__
+          env: lab
+          __path__: /var/log/postgresql/*.log
+    pipeline_stages:
+      - regex:
+          expression: '(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+) \w+ (?P<pid>\d+) (?P<level>\w+):\s+(?P<message>.*)'
+      - labels:
+          level:
+      - timestamp:
+          source: timestamp
+          format: '2006-01-02 15:04:05.000'

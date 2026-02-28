@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.env
+*.log
+
+# Sensitive configs — never commit these!
+.env.local
+secrets/
+**/credentials.yml
+**/passwords.yml
+
+# Docker volumes
+docker-volumes/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# WSL artifacts
+*.tar
