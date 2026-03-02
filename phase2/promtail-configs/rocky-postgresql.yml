@@ -1,0 +1,28 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://LOKI_IP:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: postgresql
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: postgresql
+          host: pg1             # change per node
+          cluster: ppg-cluster
+          role: leader          # change per node
+          __path__: /home/pgdata/log/*.log
+
+  - job_name: system
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: system
+          host: pg1             # change per node
+          __path__: /var/log/messages

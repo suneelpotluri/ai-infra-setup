@@ -1,0 +1,26 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://LOKI_IP:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: mongodb
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: mongodb
+          host: rocky8
+          __path__: /var/log/mongo/mongod.log
+
+  - job_name: system
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: system
+          host: rocky8
+          __path__: /var/log/messages
