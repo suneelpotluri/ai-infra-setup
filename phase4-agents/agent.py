@@ -11,6 +11,7 @@ import pg_tool
 import mongo_tool
 import loki_tool
 import system_tool
+import pgtune_tool
 import re
 
 # ── Tool Registry ─────────────────────────────────────────
@@ -29,6 +30,9 @@ TOOLS = {
     "pg_errors":       ("Check PostgreSQL logs for errors and warnings",       lambda: loki_tool.fetch_errors("postgresql", minutes=60)),
     "mongo_errors":    ("Check MongoDB logs for errors and warnings",          lambda: loki_tool.fetch_errors("mongodb", minutes=60)),
     "all_servers_report": ("Get CPU, memory and disk report for ALL servers",  system_tool.get_all_servers_report),
+    "pg_tuning":       ("Get PGTune-style performance tuning recommendations for PostgreSQL",  pgtune_tool.get_tuning_recommendations),
+    "pg_security":     ("Run a security hardening audit on PostgreSQL",                        pgtune_tool.get_security_audit),
+    "pg_full_health":  ("Get combined tuning and security audit report for PostgreSQL",         pgtune_tool.get_full_health_report),
 }
 
 def tools_description():
@@ -146,6 +150,9 @@ def main():
         "Give me a full health check of all databases",
         "Is there any replication lag?",
         "How many connections does MongoDB have?",
+        "Give me PGTune recommendations for my PostgreSQL server",
+        "Run a security hardening audit on PostgreSQL",
+        "What are the tuning and security issues on my database?",
     ]
     for i, q in enumerate(examples, 1):
         print(f"   {i}. {q}")
